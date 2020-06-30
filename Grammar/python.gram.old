@@ -60,27 +60,27 @@ simple_stmt[asdl_seq*]:
 small_stmt[stmt_ty] (memo):
     | assignment
     | e=star_expressions { _Py_Expr(e, EXTRA) }
-    | &'вернуть' return_stmt
-    | &('импортировать' | 'из') import_stmt
-    | &'бросить' raise_stmt
-    | 'пропустить' { _Py_Pass(EXTRA) }
-    | &'удалить' del_stmt
-    | &'выдать' yield_stmt
-    | &'утверждать' assert_stmt
-    | 'прервать' { _Py_Break(EXTRA) }
-    | 'продолжить' { _Py_Continue(EXTRA) }
-    | &'глобально' global_stmt
-    | &'нелокально' nonlocal_stmt
+    | &'return' return_stmt
+    | &('import' | 'from') import_stmt
+    | &'raise' raise_stmt
+    | 'pass' { _Py_Pass(EXTRA) }
+    | &'del' del_stmt
+    | &'yield' yield_stmt
+    | &'assert' assert_stmt
+    | 'break' { _Py_Break(EXTRA) }
+    | 'continue' { _Py_Continue(EXTRA) }
+    | &'global' global_stmt
+    | &'nonlocal' nonlocal_stmt
 compound_stmt[stmt_ty]:
-    | &('опр' | '@' | ASYNC) function_def
-    | &'если' if_stmt
-    | &('класс' | '@') class_def
-    | &('с' | ASYNC) with_stmt
-    | &('по' | ASYNC) for_stmt
-    | &'пробовать' try_stmt
-    | &'пока' while_stmt
+    | &('def' | '@' | ASYNC) function_def
+    | &'if' if_stmt
+    | &('class' | '@') class_def
+    | &('with' | ASYNC) with_stmt
+    | &('for' | ASYNC) for_stmt
+    | &'try' try_stmt
+    | &'while' while_stmt
 
-# NOTE: annotated_rhs may start with 'выдать'; yield_expr must start with 'выдать'
+# NOTE: annotated_rhs may start with 'yield'; yield_expr must start with 'yield'
 assignment[stmt_ty]:
     | a=NAME ':' b=expression c=['=' d=annotated_rhs { d }] {
         CHECK_VERSION(
@@ -112,26 +112,26 @@ augassign[AugOperator*]:
     | '**=' { _PyPegen_augoperator(p, Pow) }
     | '//=' { _PyPegen_augoperator(p, FloorDiv) }
 
-global_stmt[stmt_ty]: 'глобально' a=','.NAME+ {
+global_stmt[stmt_ty]: 'global' a=','.NAME+ {
     _Py_Global(CHECK(_PyPegen_map_names_to_ids(p, a)), EXTRA) }
-nonlocal_stmt[stmt_ty]: 'нелокально' a=','.NAME+ {
+nonlocal_stmt[stmt_ty]: 'nonlocal' a=','.NAME+ {
     _Py_Nonlocal(CHECK(_PyPegen_map_names_to_ids(p, a)), EXTRA) }
 
 yield_stmt[stmt_ty]: y=yield_expr { _Py_Expr(y, EXTRA) }
 
-assert_stmt[stmt_ty]: 'утверждать' a=expression b=[',' z=expression { z }] { _Py_Assert(a, b, EXTRA) }
+assert_stmt[stmt_ty]: 'assert' a=expression b=[',' z=expression { z }] { _Py_Assert(a, b, EXTRA) }
 
 del_stmt[stmt_ty]:
-    | 'удалить' a=del_targets &(';' | NEWLINE) { _Py_Delete(a, EXTRA) }
+    | 'del' a=del_targets &(';' | NEWLINE) { _Py_Delete(a, EXTRA) }
     | invalid_del_stmt
 
 import_stmt[stmt_ty]: import_name | import_from
-import_name[stmt_ty]: 'импортировать' a=dotted_as_names { _Py_Import(a, EXTRA) }
+import_name[stmt_ty]: 'import' a=dotted_as_names { _Py_Import(a, EXTRA) }
 # note below: the ('.' | '...') is necessary because '...' is tokenized as ELLIPSIS
 import_from[stmt_ty]:
-    | 'из' a=('.' | '...')* b=dotted_name 'импортировать' c=import_from_targets {
+    | 'from' a=('.' | '...')* b=dotted_name 'import' c=import_from_targets {
         _Py_ImportFrom(b->v.Name.id, c, _PyPegen_seq_count_dots(a), EXTRA) }
-    | 'из' a=('.' | '...')+ 'импортировать' b=import_from_targets {
+    | 'from' a=('.' | '...')+ 'import' b=import_from_targets {
         _Py_ImportFrom(NULL, b, _PyPegen_seq_count_dots(a), EXTRA) }
 import_from_targets[asdl_seq*]:
     | '(' a=import_from_as_names [','] ')' { a }
@@ -141,13 +141,13 @@ import_from_targets[asdl_seq*]:
 import_from_as_names[asdl_seq*]:
     | a=','.import_from_as_name+ { a }
 import_from_as_name[alias_ty]:
-    | a=NAME b=['как' z=NAME { z }] { _Py_alias(a->v.Name.id,
+    | a=NAME b=['as' z=NAME { z }] { _Py_alias(a->v.Name.id,
                                                (b) ? ((expr_ty) b)->v.Name.id : NULL,
                                                p->arena) }
 dotted_as_names[asdl_seq*]:
     | a=','.dotted_as_name+ { a }
 dotted_as_name[alias_ty]:
-    | a=dotted_name b=['как' z=NAME { z }] { _Py_alias(a->v.Name.id,
+    | a=dotted_name b=['as' z=NAME { z }] { _Py_alias(a->v.Name.id,
                                                       (b) ? ((expr_ty) b)->v.Name.id : NULL,
                                                       p->arena) }
 dotted_name[expr_ty]:
@@ -155,63 +155,63 @@ dotted_name[expr_ty]:
     | NAME
 
 if_stmt[stmt_ty]:
-    | 'если' a=named_expression ':' b=block c=elif_stmt { _Py_If(a, b, CHECK(_PyPegen_singleton_seq(p, c)), EXTRA) }
-    | 'если' a=named_expression ':' b=block c=[else_block] { _Py_If(a, b, c, EXTRA) }
+    | 'if' a=named_expression ':' b=block c=elif_stmt { _Py_If(a, b, CHECK(_PyPegen_singleton_seq(p, c)), EXTRA) }
+    | 'if' a=named_expression ':' b=block c=[else_block] { _Py_If(a, b, c, EXTRA) }
 elif_stmt[stmt_ty]:
     | 'elif' a=named_expression ':' b=block c=elif_stmt { _Py_If(a, b, CHECK(_PyPegen_singleton_seq(p, c)), EXTRA) }
     | 'elif' a=named_expression ':' b=block c=[else_block] { _Py_If(a, b, c, EXTRA) }
 else_block[asdl_seq*]: 'else' ':' b=block { b }
 
 while_stmt[stmt_ty]:
-    | 'пока' a=named_expression ':' b=block c=[else_block] { _Py_While(a, b, c, EXTRA) }
+    | 'while' a=named_expression ':' b=block c=[else_block] { _Py_While(a, b, c, EXTRA) }
 
 for_stmt[stmt_ty]:
-    | 'по' t=star_targets 'в' ~ ex=star_expressions ':' tc=[TYPE_COMMENT] b=block el=[else_block] {
+    | 'for' t=star_targets 'in' ~ ex=star_expressions ':' tc=[TYPE_COMMENT] b=block el=[else_block] {
         _Py_For(t, ex, b, el, NEW_TYPE_COMMENT(p, tc), EXTRA) }
-    | ASYNC 'по' t=star_targets 'в' ~ ex=star_expressions ':' tc=[TYPE_COMMENT] b=block el=[else_block] {
+    | ASYNC 'for' t=star_targets 'in' ~ ex=star_expressions ':' tc=[TYPE_COMMENT] b=block el=[else_block] {
         CHECK_VERSION(5, "Async for loops are", _Py_AsyncFor(t, ex, b, el, NEW_TYPE_COMMENT(p, tc), EXTRA)) }
     | invalid_for_target
 
 with_stmt[stmt_ty]:
-    | 'с' '(' a=','.with_item+ ','? ')' ':' b=block {
+    | 'with' '(' a=','.with_item+ ','? ')' ':' b=block {
         _Py_With(a, b, NULL, EXTRA) }
-    | 'с' a=','.with_item+ ':' tc=[TYPE_COMMENT] b=block {
+    | 'with' a=','.with_item+ ':' tc=[TYPE_COMMENT] b=block {
         _Py_With(a, b, NEW_TYPE_COMMENT(p, tc), EXTRA) }
-    | ASYNC 'с' '(' a=','.with_item+ ','? ')' ':' b=block {
+    | ASYNC 'with' '(' a=','.with_item+ ','? ')' ':' b=block {
        CHECK_VERSION(5, "Async with statements are", _Py_AsyncWith(a, b, NULL, EXTRA)) }
-    | ASYNC 'с' a=','.with_item+ ':' tc=[TYPE_COMMENT] b=block {
+    | ASYNC 'with' a=','.with_item+ ':' tc=[TYPE_COMMENT] b=block {
        CHECK_VERSION(5, "Async with statements are", _Py_AsyncWith(a, b, NEW_TYPE_COMMENT(p, tc), EXTRA)) }
 with_item[withitem_ty]:
-    | e=expression 'как' t=target &(',' | ')' | ':') { _Py_withitem(e, t, p->arena) }
+    | e=expression 'as' t=target &(',' | ')' | ':') { _Py_withitem(e, t, p->arena) }
     | invalid_with_item
     | e=expression { _Py_withitem(e, NULL, p->arena) }
 
 try_stmt[stmt_ty]:
-    | 'пробовать' ':' b=block f=finally_block { _Py_Try(b, NULL, NULL, f, EXTRA) }
-    | 'пробовать' ':' b=block ex=except_block+ el=[else_block] f=[finally_block] { _Py_Try(b, ex, el, f, EXTRA) }
+    | 'try' ':' b=block f=finally_block { _Py_Try(b, NULL, NULL, f, EXTRA) }
+    | 'try' ':' b=block ex=except_block+ el=[else_block] f=[finally_block] { _Py_Try(b, ex, el, f, EXTRA) }
 except_block[excepthandler_ty]:
-    | 'исключить' e=expression t=['как' z=NAME { z }] ':' b=block {
+    | 'except' e=expression t=['as' z=NAME { z }] ':' b=block {
         _Py_ExceptHandler(e, (t) ? ((expr_ty) t)->v.Name.id : NULL, b, EXTRA) }
-    | 'исключить' ':' b=block { _Py_ExceptHandler(NULL, NULL, b, EXTRA) }
+    | 'except' ':' b=block { _Py_ExceptHandler(NULL, NULL, b, EXTRA) }
 finally_block[asdl_seq*]: 'finally' ':' a=block { a }
 
 return_stmt[stmt_ty]:
-    | 'вернуть' a=[star_expressions] { _Py_Return(a, EXTRA) }
+    | 'return' a=[star_expressions] { _Py_Return(a, EXTRA) }
 
 raise_stmt[stmt_ty]:
-    | 'бросить' a=expression b=['из' z=expression { z }] { _Py_Raise(a, b, EXTRA) }
-    | 'бросить' { _Py_Raise(NULL, NULL, EXTRA) }
+    | 'raise' a=expression b=['from' z=expression { z }] { _Py_Raise(a, b, EXTRA) }
+    | 'raise' { _Py_Raise(NULL, NULL, EXTRA) }
 
 function_def[stmt_ty]:
     | d=decorators f=function_def_raw { _PyPegen_function_def_decorators(p, d, f) }
     | function_def_raw
 
 function_def_raw[stmt_ty]:
-    | 'опр' n=NAME '(' params=[params] ')' a=['->' z=expression { z }] ':' tc=[func_type_comment] b=block {
+    | 'def' n=NAME '(' params=[params] ')' a=['->' z=expression { z }] ':' tc=[func_type_comment] b=block {
         _Py_FunctionDef(n->v.Name.id,
                         (params) ? params : CHECK(_PyPegen_empty_arguments(p)),
                         b, NULL, a, NEW_TYPE_COMMENT(p, tc), EXTRA) }
-    | ASYNC 'опр' n=NAME '(' params=[params] ')' a=['->' z=expression { z }] ':' tc=[func_type_comment] b=block {
+    | ASYNC 'def' n=NAME '(' params=[params] ')' a=['->' z=expression { z }] ':' tc=[func_type_comment] b=block {
         CHECK_VERSION(
             5,
             "Async functions are",
@@ -290,7 +290,7 @@ class_def[stmt_ty]:
     | a=decorators b=class_def_raw { _PyPegen_class_def_decorators(p, a, b) }
     | class_def_raw
 class_def_raw[stmt_ty]:
-    | 'класс' a=NAME b=['(' z=[arguments] ')' { z }] ':' c=block {
+    | 'class' a=NAME b=['(' z=[arguments] ')' { z }] ':' c=block {
         _Py_ClassDef(a->v.Name.id,
                      (b) ? ((expr_ty) b)->v.Call.args : NULL,
                      (b) ? ((expr_ty) b)->v.Call.keywords : NULL,
@@ -328,12 +328,12 @@ expressions[expr_ty]:
     | a=expression ',' { _Py_Tuple(CHECK(_PyPegen_singleton_seq(p, a)), Load, EXTRA) }
     | expression
 expression[expr_ty] (memo):
-    | a=disjunction 'если' b=disjunction 'else' c=expression { _Py_IfExp(b, a, c, EXTRA) }
+    | a=disjunction 'if' b=disjunction 'else' c=expression { _Py_IfExp(b, a, c, EXTRA) }
     | disjunction
     | lambdef
 
 lambdef[expr_ty]:
-    | 'лямбда' a=[lambda_params] ':' b=expression { _Py_Lambda((a) ? a : CHECK(_PyPegen_empty_arguments(p)), b, EXTRA) }
+    | 'lambda' a=[lambda_params] ':' b=expression { _Py_Lambda((a) ? a : CHECK(_PyPegen_empty_arguments(p)), b, EXTRA) }
 
 lambda_params[arguments_ty]:
     | invalid_lambda_parameters
@@ -382,19 +382,19 @@ lambda_param_maybe_default[NameDefaultPair*]:
 lambda_param[arg_ty]: a=NAME { _Py_arg(a->v.Name.id, NULL, NULL, EXTRA) }
 
 disjunction[expr_ty] (memo):
-    | a=conjunction b=('или' c=conjunction { c })+ { _Py_BoolOp(
+    | a=conjunction b=('or' c=conjunction { c })+ { _Py_BoolOp(
         Or,
         CHECK(_PyPegen_seq_insert_in_front(p, a, b)),
         EXTRA) }
     | conjunction
 conjunction[expr_ty] (memo):
-    | a=inversion b=('и' c=inversion { c })+ { _Py_BoolOp(
+    | a=inversion b=('and' c=inversion { c })+ { _Py_BoolOp(
         And,
         CHECK(_PyPegen_seq_insert_in_front(p, a, b)),
         EXTRA) }
     | inversion
 inversion[expr_ty] (memo):
-    | 'не' a=inversion { _Py_UnaryOp(Not, a, EXTRA) }
+    | 'not' a=inversion { _Py_UnaryOp(Not, a, EXTRA) }
     | comparison
 comparison[expr_ty]:
     | a=bitwise_or b=compare_op_bitwise_or_pair+ {
@@ -418,10 +418,10 @@ lte_bitwise_or[CmpopExprPair*]: '<=' a=bitwise_or { _PyPegen_cmpop_expr_pair(p, 
 lt_bitwise_or[CmpopExprPair*]: '<' a=bitwise_or { _PyPegen_cmpop_expr_pair(p, Lt, a) }
 gte_bitwise_or[CmpopExprPair*]: '>=' a=bitwise_or { _PyPegen_cmpop_expr_pair(p, GtE, a) }
 gt_bitwise_or[CmpopExprPair*]: '>' a=bitwise_or { _PyPegen_cmpop_expr_pair(p, Gt, a) }
-notin_bitwise_or[CmpopExprPair*]: 'не' 'в' a=bitwise_or { _PyPegen_cmpop_expr_pair(p, NotIn, a) }
-in_bitwise_or[CmpopExprPair*]: 'в' a=bitwise_or { _PyPegen_cmpop_expr_pair(p, In, a) }
-isnot_bitwise_or[CmpopExprPair*]: 'есть' 'не' a=bitwise_or { _PyPegen_cmpop_expr_pair(p, IsNot, a) }
-is_bitwise_or[CmpopExprPair*]: 'есть' a=bitwise_or { _PyPegen_cmpop_expr_pair(p, Is, a) }
+notin_bitwise_or[CmpopExprPair*]: 'not' 'in' a=bitwise_or { _PyPegen_cmpop_expr_pair(p, NotIn, a) }
+in_bitwise_or[CmpopExprPair*]: 'in' a=bitwise_or { _PyPegen_cmpop_expr_pair(p, In, a) }
+isnot_bitwise_or[CmpopExprPair*]: 'is' 'not' a=bitwise_or { _PyPegen_cmpop_expr_pair(p, IsNot, a) }
+is_bitwise_or[CmpopExprPair*]: 'is' a=bitwise_or { _PyPegen_cmpop_expr_pair(p, Is, a) }
 
 bitwise_or[expr_ty]:
     | a=bitwise_or '|' b=bitwise_xor { _Py_BinOp(a, BitOr, b, EXTRA) }
@@ -478,9 +478,9 @@ slice[expr_ty]:
     | a=expression { a }
 atom[expr_ty]:
     | NAME
-    | 'Истина' { _Py_Constant(Py_True, NULL, EXTRA) }
-    | 'Ложь' { _Py_Constant(Py_False, NULL, EXTRA) }
-    | 'Ничто' { _Py_Constant(Py_None, NULL, EXTRA) }
+    | 'True' { _Py_Constant(Py_True, NULL, EXTRA) }
+    | 'False' { _Py_Constant(Py_False, NULL, EXTRA) }
+    | 'None' { _Py_Constant(Py_None, NULL, EXTRA) }
     | &STRING strings
     | NUMBER
     | &'(' (tuple | group | genexp)
@@ -521,15 +521,15 @@ kvpair[KeyValuePair*]: a=expression ':' b=expression { _PyPegen_key_value_pair(p
 for_if_clauses[asdl_seq*]:
     | for_if_clause+
 for_if_clause[comprehension_ty]:
-    | ASYNC 'по' a=star_targets 'в' ~ b=disjunction c=('если' z=disjunction { z })* {
+    | ASYNC 'for' a=star_targets 'in' ~ b=disjunction c=('if' z=disjunction { z })* {
         CHECK_VERSION(6, "Async comprehensions are", _Py_comprehension(a, b, c, 1, p->arena)) }
-    | 'по' a=star_targets 'в' ~ b=disjunction c=('если' z=disjunction { z })* {
+    | 'for' a=star_targets 'in' ~ b=disjunction c=('if' z=disjunction { z })* {
         _Py_comprehension(a, b, c, 0, p->arena) }
     | invalid_for_target
 
 yield_expr[expr_ty]:
-    | 'выдать' 'из' a=expression { _Py_YieldFrom(a, EXTRA) }
-    | 'выдать' a=[star_expressions] { _Py_Yield(a, EXTRA) }
+    | 'yield' 'from' a=expression { _Py_YieldFrom(a, EXTRA) }
+    | 'yield' a=[star_expressions] { _Py_Yield(a, EXTRA) }
 
 arguments[expr_ty] (memo):
     | a=args [','] &')' { a }
@@ -660,7 +660,7 @@ invalid_assignment:
         RAISE_SYNTAX_ERROR_INVALID_TARGET(STAR_TARGETS, a) }
     | (star_targets '=')* a=yield_expr '=' { RAISE_SYNTAX_ERROR_KNOWN_LOCATION(a, "assignment to yield expression not possible") }
     | a=star_expressions augassign (yield_expr | star_expressions) {
-        RAISE_SYNTAX_ERROR_KNOWN_LOCATION(
+        RAISE_SYNTAX_ERROR_KNOWN_LOCATION( 
             a,
             "'%s' is an illegal expression for augmented assignment",
             _PyPegen_get_expr_name(a)
@@ -670,7 +670,7 @@ invalid_ann_assign_target[expr_ty]:
     | tuple
     | '(' a=invalid_ann_assign_target ')' { a }
 invalid_del_stmt:
-    | 'удалить' a=star_expressions {
+    | 'del' a=star_expressions {
         RAISE_SYNTAX_ERROR_INVALID_TARGET(DEL_TARGETS, a) }
 invalid_block:
     | NEWLINE !INDENT { RAISE_INDENTATION_ERROR("expected an indented block") }
@@ -695,11 +695,11 @@ invalid_double_type_comments:
     | TYPE_COMMENT NEWLINE TYPE_COMMENT NEWLINE INDENT {
         RAISE_SYNTAX_ERROR("Cannot have two type comments on def") }
 invalid_with_item:
-    | expression 'как' a=expression {
+    | expression 'as' a=expression {
         RAISE_SYNTAX_ERROR_INVALID_TARGET(STAR_TARGETS, a) }
 
 invalid_for_target:
-    | ASYNC? 'по' a=star_expressions {
+    | ASYNC? 'for' a=star_expressions {
         RAISE_SYNTAX_ERROR_INVALID_TARGET(FOR_TARGETS, a) }
 
 invalid_group:

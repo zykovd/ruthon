@@ -19,7 +19,7 @@ decorators: decorator+
 decorated: decorators (classdef | funcdef | async_funcdef)
 
 async_funcdef: ASYNC funcdef
-funcdef: 'опр' NAME parameters ['->' test] ':' [TYPE_COMMENT] func_body_suite
+funcdef: 'def' NAME parameters ['->' test] ':' [TYPE_COMMENT] func_body_suite
 
 parameters: '(' [typedargslist] ')'
 
@@ -89,56 +89,56 @@ testlist_star_expr: (test|star_expr) (',' (test|star_expr))* [',']
 augassign: ('+=' | '-=' | '*=' | '@=' | '/=' | '%=' | '&=' | '|=' | '^=' |
             '<<=' | '>>=' | '**=' | '//=')
 # For normal and annotated assignments, additional restrictions enforced by the interpreter
-del_stmt: 'удалить' exprlist
-pass_stmt: 'пропустить'
+del_stmt: 'del' exprlist
+pass_stmt: 'pass'
 flow_stmt: break_stmt | continue_stmt | return_stmt | raise_stmt | yield_stmt
-break_stmt: 'прервать'
-continue_stmt: 'продолжить'
-return_stmt: 'вернуть' [testlist_star_expr]
+break_stmt: 'break'
+continue_stmt: 'continue'
+return_stmt: 'return' [testlist_star_expr]
 yield_stmt: yield_expr
-raise_stmt: 'бросить' [test ['из' test]]
+raise_stmt: 'raise' [test ['from' test]]
 import_stmt: import_name | import_from
-import_name: 'импортировать' dotted_as_names
+import_name: 'import' dotted_as_names
 # note below: the ('.' | '...') is necessary because '...' is tokenized as ELLIPSIS
-import_from: ('из' (('.' | '...')* dotted_name | ('.' | '...')+)
-              'импортировать' ('*' | '(' import_as_names ')' | import_as_names))
-import_as_name: NAME ['как' NAME]
-dotted_as_name: dotted_name ['как' NAME]
+import_from: ('from' (('.' | '...')* dotted_name | ('.' | '...')+)
+              'import' ('*' | '(' import_as_names ')' | import_as_names))
+import_as_name: NAME ['as' NAME]
+dotted_as_name: dotted_name ['as' NAME]
 import_as_names: import_as_name (',' import_as_name)* [',']
 dotted_as_names: dotted_as_name (',' dotted_as_name)*
 dotted_name: NAME ('.' NAME)*
-global_stmt: 'глобально' NAME (',' NAME)*
-nonlocal_stmt: 'нелокально' NAME (',' NAME)*
-assert_stmt: 'утверждать' test [',' test]
+global_stmt: 'global' NAME (',' NAME)*
+nonlocal_stmt: 'nonlocal' NAME (',' NAME)*
+assert_stmt: 'assert' test [',' test]
 
 compound_stmt: if_stmt | while_stmt | for_stmt | try_stmt | with_stmt | funcdef | classdef | decorated | async_stmt
 async_stmt: ASYNC (funcdef | with_stmt | for_stmt)
-if_stmt: 'если' namedexpr_test ':' suite ('иначеесли' namedexpr_test ':' suite)* ['иначе' ':' suite]
-while_stmt: 'пока' namedexpr_test ':' suite ['иначе' ':' suite]
-for_stmt: 'по' exprlist 'в' testlist ':' [TYPE_COMMENT] suite ['иначе' ':' suite]
-try_stmt: ('пробовать' ':' suite
+if_stmt: 'if' namedexpr_test ':' suite ('elif' namedexpr_test ':' suite)* ['else' ':' suite]
+while_stmt: 'while' namedexpr_test ':' suite ['else' ':' suite]
+for_stmt: 'for' exprlist 'in' testlist ':' [TYPE_COMMENT] suite ['else' ':' suite]
+try_stmt: ('try' ':' suite
            ((except_clause ':' suite)+
-            ['иначе' ':' suite]
-            ['окончательно' ':' suite] |
-           'окончательно' ':' suite))
+            ['else' ':' suite]
+            ['finally' ':' suite] |
+           'finally' ':' suite))
 with_stmt: 'with' with_item (',' with_item)*  ':' [TYPE_COMMENT] suite
-with_item: test ['как' expr]
+with_item: test ['as' expr]
 # NB compile.c makes sure that the default except clause is last
-except_clause: 'исключить' [test ['как' NAME]]
+except_clause: 'except' [test ['as' NAME]]
 suite: simple_stmt | NEWLINE INDENT stmt+ DEDENT
 
 namedexpr_test: test [':=' test]
-test: or_test ['если' or_test 'иначе' test] | lambdef
+test: or_test ['if' or_test 'else' test] | lambdef
 test_nocond: or_test | lambdef_nocond
-lambdef: 'лямбда' [varargslist] ':' test
-lambdef_nocond: 'лямбда' [varargslist] ':' test_nocond
-or_test: and_test ('или' and_test)*
-and_test: not_test ('и' not_test)*
-not_test: 'не' not_test | comparison
+lambdef: 'lambda' [varargslist] ':' test
+lambdef_nocond: 'lambda' [varargslist] ':' test_nocond
+or_test: and_test ('or' and_test)*
+and_test: not_test ('and' not_test)*
+not_test: 'not' not_test | comparison
 comparison: expr (comp_op expr)*
 # <> isn't actually a valid comparison operator in Python. It's here for the
 # sake of a __future__ import described in PEP 401 (which really works :-)
-comp_op: '<'|'>'|'=='|'>='|'<='|'<>'|'!='|'в'|'не' 'в'|'есть'|'есть' 'не'
+comp_op: '<'|'>'|'=='|'>='|'<='|'<>'|'!='|'in'|'not' 'in'|'is'|'is' 'not'
 star_expr: '*' expr
 expr: xor_expr ('|' xor_expr)*
 xor_expr: and_expr ('^' and_expr)*
@@ -152,7 +152,7 @@ atom_expr: [AWAIT] atom trailer*
 atom: ('(' [yield_expr|testlist_comp] ')' |
        '[' [testlist_comp] ']' |
        '{' [dictorsetmaker] '}' |
-       NAME | NUMBER | STRING+ | '...' | 'Ничто' | 'Истина' | 'Ложь')
+       NAME | NUMBER | STRING+ | '...' | 'None' | 'True' | 'False')
 testlist_comp: (namedexpr_test|star_expr) ( comp_for | (',' (namedexpr_test|star_expr))* [','] )
 trailer: '(' [arglist] ')' | '[' subscriptlist ']' | '.' NAME
 subscriptlist: subscript (',' subscript)* [',']
@@ -165,7 +165,7 @@ dictorsetmaker: ( ((test ':' test | '**' expr)
                   ((test | star_expr)
                    (comp_for | (',' (test | star_expr))* [','])) )
 
-classdef: 'класс' NAME ['(' [arglist] ')'] ':' suite
+classdef: 'class' NAME ['(' [arglist] ')'] ':' suite
 
 arglist: argument (',' argument)*  [',']
 
@@ -185,15 +185,15 @@ argument: ( test [comp_for] |
             '*' test )
 
 comp_iter: comp_for | comp_if
-sync_comp_for: 'по' exprlist 'в' or_test [comp_iter]
+sync_comp_for: 'for' exprlist 'in' or_test [comp_iter]
 comp_for: [ASYNC] sync_comp_for
-comp_if: 'если' test_nocond [comp_iter]
+comp_if: 'if' test_nocond [comp_iter]
 
 # not used in grammar, but may appear in "node" passed from Parser to Compiler
 encoding_decl: NAME
 
-yield_expr: 'выдать' [yield_arg]
-yield_arg: 'из' test | testlist_star_expr
+yield_expr: 'yield' [yield_arg]
+yield_arg: 'from' test | testlist_star_expr
 
 # the TYPE_COMMENT in suites is only parsed for funcdefs,
 # but can't go elsewhere due to ambiguity
