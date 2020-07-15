@@ -202,8 +202,12 @@ translabel(grammar *g, label *lb)
     }
 
     if (lb->lb_type == STRING) {
+        printf("%s\n", lb->lb_str);
+
         if (isalpha(Py_CHARMASK(lb->lb_str[1])) ||
-            lb->lb_str[1] == '_') {
+            lb->lb_str[1] == '_' ||
+            (unsigned int)lb->lb_str[1] == 4294967248 ||
+            (unsigned int)lb->lb_str[1] == 4294967249) {
             char *p;
             char *src;
             char *dest;
@@ -263,9 +267,11 @@ translabel(grammar *g, label *lb)
                 printf("Unknown OP label %s\n",
                     lb->lb_str);
         }
-        else
+        else {
             printf("Can't translate STRING label %s\n",
                 lb->lb_str);
+            //for (int i = 1; lb->lb_str[i] != 39; ++i) printf("%c %u\n", lb->lb_str[i], lb->lb_str[i]);
+        }
     }
     else
         printf("Can't translate label '%s'\n",
